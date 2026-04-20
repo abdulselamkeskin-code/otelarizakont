@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Otel Arıza Sistemi</title>
+</head>
+<body>
+
+<!-- 🔐 LOGIN -->
+<div id="login">
+  <h2>Admin Giriş</h2>
+  <input type="password" id="pass" placeholder="123">
+  <button onclick="login()">Giriş</button>
+</div>
+
+<!-- 📋 PANEL -->
+<div id="panel" style="display:none;">
+
+  <h2>Otel Arıza Sistemi</h2>
+
+  <input id="oda" placeholder="Oda No"><br><br>
+  <input id="ariza" placeholder="Arıza"><br><br>
+
+  <button onclick="gonder()">Gönder</button>
+
+  <h3>Arıza Listesi</h3>
+  <ul id="liste"></ul>
+
+</div>
+
+<script>
+
+const SUPABASE_URL = "https://seailllpjdyveevepgio.supabase.co";
+const SUPABASE_KEY = "sb_publishable_90Mva-YNxKYrH8mw8xxe5w_BV6E9Uyx";
+
+/* 🔐 LOGIN */
+function login() {
+  const pass = document.getElementById("pass").value;
+
+  if (pass === "1234") {
+    document.getElementById("login").style.display = "none";
+    document.getElementById("panel").style.display = "block";
+    listeyiGetir();
+  } else {
+    alert("Hatalı şifre!");
+  }
+}
+
+/* ➕ ARIZA EKLE */
+async function gonder() {
+  const oda = document.getElementById("oda").value;
+  const ariza = document.getElementById("ariza").value;
+
+  if (!oda || !ariza) {
+    alert("Boş bırakma!");
+    return;
+  }
+
+  await fetch(SUPABASE_URL + "/rest/v1/arizalar", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY
+    },
+    body: JSON.stringify({
+      oda: oda,
+      ariza: ariza,
+      durum: "bekliyor"
+    })
+  });
+
+  document.getElementById("oda").value = "";
+  document.getElementById("ariza").value = "";
+
+  listeyiGetir();
+}
+
+/* 📋 LİSTE */
+async function listeyiGetir() {
+  const res = await fetch(SUPABASE_URL + "/rest/v1/arizalar?select=*&order=id.desc", {
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY
+    }
+  });
+
+  const data = await res.json();
+
+  const liste = document.getElementById("liste");
+  liste.innerHTML = "";
+
+  data.forEach(item => {
+    const li = document.createElement("li");
+
+    li.innerHTML = `
+      Oda ${item.oda} - ${item.ariza}
+      [${item.durum || "bekliyor"}]
+      <button onclick="tamamla(${item.id})">Tamamlandı</button>
+    `;
+
+    liste.appendChild(li);
+  });
+}
+
+/* ✅ TAMAMLA */
+async function tamamla(id) {
+  await fetch(SUPABASE_URL + "/rest/v1/arizalar?id=eq." + id, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY
+    },
+    body: JSON.stringify({ durum: "tamamlandı" })
+  });
+
+  listeyiGetir();
+}
+
+</script>
+
+</body>
+</html>
